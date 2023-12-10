@@ -77,7 +77,7 @@ fn main(){
 
             "3" => {
                 clr();
-                let services = read_passwords_from_file(|err| {
+                let services = read_passwords_from_file().unwrap_or_else(|err| {
                     eprintln!("Error reading passwords:{}",err);
                     Vec::new()
                 });

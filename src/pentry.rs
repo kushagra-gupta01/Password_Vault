@@ -3,7 +3,7 @@ use std::fs::File;
 use std::fs::OpenOptions;
 use std::io;
 use std::io::BufRead;
-use std::io::BufWriter;
+use std::io::Write;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServiceInfo{
@@ -22,7 +22,7 @@ impl ServiceInfo {
   }
 
   pub fn from_json(json_string: &str) -> Result<Self,serde_json::Error>{
-    serde_json::from_json(json_string)
+    serde_json::from_str(json_string)
   }
   #[allow(dead_code)]
   pub fn from_user_input() -> Self{
@@ -64,27 +64,36 @@ impl ServiceInfo {
       .open("Passwords.json")
       {
         Ok(mut file) => {
-          file.write_all(json_output.as_bytes()){
+          if let Err(e) =  file.write_all(json_output.as_bytes()){
             eprintln!("Error writing to the file: {}", e);
           } else {
             println!("Successfully wrote to Passwords.json")
           }
-          Err(e) => eprintln!("Error opening file: {}",e),
         }
+          Err(e) => eprintln!("Error opening file: {}",e),
+      }
       }
   }
 
-}
-
 pub fn read_passwords_from_file() ->  Result<Vec<ServiceInfo>, io::Error>{
-  let file = File::open("Passwords.json");
+  let file = File::open("Passwords.json")?;
   let reader = io::BufReader::new(file);
+  let mut services = Vec::new();
+
+  for line in reader.lines(){
+    if let Ok(json_string) = line{
+      if let Ok(service_info) = ServiceInfo::from_json(&json_string){
+        services.push(service_info);
+      }
+    }
+  }
+  Ok(services)
 }
 
-pub fn prompt(prompt &str) -> String{
+pub fn prompt(prompt: &str) ->String{
   print!("{}",prompt);
   io::stdout().flush().unwrap();
-  let mut input =  String::new();
+  let mut input = String::new();
   io::stdin().read_line(&mut input).unwrap();
-  input.trim().to_String()
+  input.trim().to_string()
 }
